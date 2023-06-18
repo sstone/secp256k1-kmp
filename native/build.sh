@@ -9,7 +9,7 @@ fi
 
 cd "$(dirname "$0")"
 
-cd secp256k1
+cd secp256k1-zkp
 
 if [ "$TARGET" == "mingw" ]; then
   CONF_OPTS="CFLAGS=-fPIC --host=x86_64-w64-mingw32"
@@ -23,7 +23,7 @@ else
 fi
 
 ./autogen.sh
-./configure $CONF_OPTS --enable-experimental --enable-module_ecdh --enable-module-recovery --enable-module-schnorrsig --enable-benchmark=no --enable-shared=no --enable-exhaustive-tests=no --enable-tests=no
+./configure $CONF_OPTS --enable-experimental --enable-module_ecdh --enable-module-recovery --enable-module-schnorrsig --enable-module-musig --enable-benchmark=no --enable-shared=no --enable-exhaustive-tests=no --enable-tests=no
 make clean
 make
 
@@ -32,7 +32,7 @@ make
 cd ..
 
 mkdir -p build/$TARGET
-cp -v secp256k1/.libs/libsecp256k1.a build/$TARGET/
+cp -v secp256k1-zkp/.libs/libsecp256k1.a build/$TARGET/
 
 [[ ! -z "$TO_UID" ]] && chown -R $TO_UID:$TO_UID build
 

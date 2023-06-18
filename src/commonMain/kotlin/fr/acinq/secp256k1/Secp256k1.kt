@@ -133,7 +133,10 @@ public interface Secp256k1 {
      */
     public fun ecdsaRecover(sig: ByteArray, message: ByteArray, recid: Int): ByteArray
 
-    /**
+
+    public fun musigPubKeyAgg(pubkeys: Array<ByteArray>): ByteArray
+
+        /**
      * Convert a compact ECDSA signature (64 bytes) to a der-encoded ECDSA signature.
      */
     public fun compact2der(sig: ByteArray): ByteArray

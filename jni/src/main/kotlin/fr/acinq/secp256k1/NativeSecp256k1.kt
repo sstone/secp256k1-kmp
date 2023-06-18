@@ -92,6 +92,10 @@ public object NativeSecp256k1 : Secp256k1 {
         return Secp256k1CFunctions.secp256k1_schnorrsig_sign(Secp256k1Context.getContext(), data, sec, auxrand32)
     }
 
+    override fun musigPubKeyAgg(pubkeys: Array<ByteArray>): ByteArray {
+        return Secp256k1CFunctions.secp256k1_musig_pubkey_agg(Secp256k1Context.getContext(), pubkeys)
+    }
+
     override fun cleanup() {
         return Secp256k1CFunctions.secp256k1_context_destroy(Secp256k1Context.getContext())
     }

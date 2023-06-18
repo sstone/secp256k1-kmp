@@ -5,6 +5,7 @@
 #include "include/secp256k1_ecdh.h"
 #include "include/secp256k1_recovery.h"
 #include "include/secp256k1_schnorrsig.h"
+#include "include/secp256k1_musig.h"
 #include "fr_acinq_secp256k1_Secp256k1CFunctions.h"
 
 #define SIG_FORMAT_UNKNOWN 0
@@ -749,4 +750,50 @@ JNIEXPORT jint JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1sc
     (*penv)->ReleaseByteArrayElements(penv, jsig, sig, 0);
     (*penv)->ReleaseByteArrayElements(penv, jmsg, msg, 0);
     return result;
+}
+
+/*
+ * Class:     fr_acinq_secp256k1_Secp256k1CFunctions
+ * Method:    secp256k1_musig_pubkey_agg
+ * Signature: (J[[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1musig_1pubkey_1agg
+  (JNIEnv *penv, jclass clazz, jlong jctx, jobjectArray jpubkeys)
+{
+    secp256k1_context* ctx = (secp256k1_context *)jctx;
+    jbyte *pub;
+    secp256k1_pubkey **pubkeys;
+    secp256k1_xonly_pubkey combined;
+    jbyteArray jpubkey;
+    size_t size, count;
+    size_t i;
+    int result = 0;
+
+    if (jctx == 0) return NULL;
+    if (jpubkeys == NULL) return NULL;
+
+    count = (*penv)->GetArrayLength(penv, jpubkeys);
+    pubkeys = calloc(count, sizeof(secp256k1_pubkey*));
+
+    for(i = 0; i < count; i++) {
+        pubkeys[i] = calloc(1, sizeof(secp256k1_pubkey));
+        jpubkey = (jbyteArray) (*penv)->GetObjectArrayElement(penv, jpubkeys, i);
+        size = (*penv)->GetArrayLength(penv, jpubkey);
+        CHECKRESULT1((size != 33) && (size != 65), "invalid public key size", free_pubkeys(pubkeys, count));
+        pub = (*penv)->GetByteArrayElements(penv, jpubkey, 0);
+        result = secp256k1_ec_pubkey_parse(ctx, pubkeys[i], (unsigned char*)pub, size);
+        (*penv)->ReleaseByteArrayElements(penv, jpubkey, pub, 0);
+        CHECKRESULT1(!result, "secp256k1_ec_pubkey_parse failed", free_pubkeys(pubkeys, count));
+    }
+    result = secp256k1_musig_pubkey_agg(ctx, NULL, &combined, NULL, (const secp256k1_pubkey * const *)pubkeys, count);
+    free_pubkeys(pubkeys, count);
+    CHECKRESULT(!result, "secp256k1_musig_pubkey_agg failed");
+
+    size = 32;
+    jpubkey = (*penv)->NewByteArray(penv, 32);
+    pub = (*penv)->GetByteArrayElements(penv, jpubkey, 0);
+    result = secp256k1_xonly_pubkey_serialize(ctx, (unsigned char*)pub, &combined);
+    (*penv)->ReleaseByteArrayElements(penv, jpubkey, pub, 0);
+    CHECKRESULT(!result, "secp256k1_xonly_pubkey_serialize failed");
+    return jpubkey;
 }

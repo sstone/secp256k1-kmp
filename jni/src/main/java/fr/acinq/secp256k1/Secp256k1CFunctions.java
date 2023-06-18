@@ -68,4 +68,6 @@ public class Secp256k1CFunctions {
     public static native byte[] secp256k1_schnorrsig_sign(long ctx, byte[] msg, byte[] seckey, byte[] aux_rand32);
 
     public static native int secp256k1_schnorrsig_verify(long ctx, byte[] sig, byte[] msg, byte[] pubkey);
+
+    public static native byte[] secp256k1_musig_pubkey_agg(long ctx, byte[][] pubkeys);
 }

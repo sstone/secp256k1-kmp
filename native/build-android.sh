@@ -30,14 +30,14 @@ export AS=$CC
 export RANLIB=$ANDROID_NDK/toolchains/llvm/prebuilt/$TOOLCHAIN/bin/llvm-ranlib
 export STRIP=$ANDROID_NDK/toolchains/llvm/prebuilt/$TOOLCHAIN/bin/llvm-strip
 
-cd secp256k1
+cd secp256k1-zkp
 
 ./autogen.sh
-./configure CFLAGS=-fpic --host=$TARGET --enable-experimental --enable-module_ecdh --enable-module-recovery --enable-module-schnorrsig --enable-benchmark=no --enable-shared=no --enable-exhaustive-tests=no --enable-tests=no
+./configure CFLAGS=-fpic --host=$TARGET --enable-experimental --enable-module_ecdh --enable-module-recovery --enable-module-schnorrsig --enable-module-musig --enable-benchmark=no --enable-shared=no --enable-exhaustive-tests=no --enable-tests=no
 make clean
 make
 
 cd ..
 
 mkdir -p build/android-$ARCH
-cp -v secp256k1/.libs/libsecp256k1.a build/android-$ARCH
+cp -v secp256k1-zkp/.libs/libsecp256k1.a build/android-$ARCH

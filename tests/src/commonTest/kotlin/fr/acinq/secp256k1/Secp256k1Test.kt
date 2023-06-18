@@ -373,4 +373,16 @@ class Secp256k1Test {
             assertTrue(Secp256k1.verify(der, message, pub))
         }
     }
+
+    @Test
+    fun musigKeyAgg() {
+        val priv1 = Hex.decode("0101010101010101010101010101010101010101010101010101010101010101".lowercase())
+        val pub1 = Secp256k1.pubkeyCreate(priv1)
+        val priv2 = Hex.decode("0202020202020202020202020202020202020202020202020202020202020202".lowercase())
+        val pub2 = Secp256k1.pubkeyCreate(priv2)
+        val priv3 = Hex.decode("0303030303030303030303030303030303030303030303030303030303030303".lowercase())
+        val pub3 = Secp256k1.pubkeyCreate(priv3)
+        val pub4 = Secp256k1.musigPubKeyAgg(arrayOf(pub1, pub2, pub3))
+        println(Hex.encode(pub4))
+    }
 }
