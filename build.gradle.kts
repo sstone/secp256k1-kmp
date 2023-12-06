@@ -3,8 +3,8 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.dokka.Platform
 
 plugins {
-    kotlin("multiplatform") version "1.8.21"
-    id("org.jetbrains.dokka") version "1.8.10"
+    kotlin("multiplatform") version "1.9.21"
+    id("org.jetbrains.dokka") version "1.9.10"
     `maven-publish`
 }
 
@@ -16,7 +16,7 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:7.3.1")
-        classpath("org.jetbrains.dokka:dokka-gradle-plugin:1.8.10")
+        classpath("org.jetbrains.dokka:dokka-gradle-plugin:1.9.10")
     }
 }
 
@@ -52,20 +52,22 @@ kotlin {
         }
     }
 
-    val nativeMain by sourceSets.creating { dependsOn(commonMain) }
+    val nativeMain by sourceSets.creating
 
-    linuxX64("linux") {
+    linuxX64 {
         secp256k1CInterop("host")
-        compilations["main"].defaultSourceSet.dependsOn(nativeMain)
-        // https://youtrack.jetbrains.com/issue/KT-39396
-        compilations["main"].kotlinOptions.freeCompilerArgs += listOf("-include-binary", "$rootDir/native/build/linux/libsecp256k1.a")
     }
 
-    ios {
+    iosX64 {
         secp256k1CInterop("ios")
-        compilations["main"].defaultSourceSet.dependsOn(nativeMain)
-        // https://youtrack.jetbrains.com/issue/KT-39396
-        compilations["main"].kotlinOptions.freeCompilerArgs += listOf("-include-binary", "$rootDir/native/build/ios/libsecp256k1.a")
+    }
+
+    iosArm64 {
+        secp256k1CInterop("ios")
+    }
+
+    iosSimulatorArm64 {
+        secp256k1CInterop("ios")
     }
 
     sourceSets.all {
