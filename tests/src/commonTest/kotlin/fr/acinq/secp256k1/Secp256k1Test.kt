@@ -5,6 +5,8 @@ import kotlin.test.*
 
 class Secp256k1Test {
 
+    val random = Random.Default
+
     @Test
     fun verifyValidPrivateKey() {
         val priv = Hex.decode("67E56582298859DDAE725F972992A07C6C4FB9F62A8FFF58CE3CA926A1063530".lowercase())
@@ -350,6 +352,15 @@ class Secp256k1Test {
             }
             assertEquals(expected, result, "test [$index, $comment] failed")
         }
+    }
+
+    @Test
+    fun testMusig2GenerateNonce() {
+        val pubkey = Hex.decode("02F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9")
+        val sessionId = Hex.decode("0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F")
+        val nonce = Secp256k1.musigNonceGen(sessionId, null, pubkey, null, null, null)
+        val pubnonce = Hex.encode(nonce.copyOfRange(132, 132 + 66)).uppercase()
+        assertEquals("02C96E7CB1E8AA5DAC64D872947914198F607D90ECDE5200DE52978AD5DED63C000299EC5117C2D29EDEE8A2092587C3909BE694D5CFF0667D6C02EA4059F7CD9786", pubnonce)
     }
 
     @Test

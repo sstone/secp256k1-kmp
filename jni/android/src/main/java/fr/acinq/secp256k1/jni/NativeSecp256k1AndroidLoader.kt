@@ -23,7 +23,6 @@ public object NativeSecp256k1AndroidLoader {
             } catch (_: ClassNotFoundException) {
                 throw ex
             }
-
         }
     }
 }

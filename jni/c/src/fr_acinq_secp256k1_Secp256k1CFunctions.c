@@ -8,6 +8,7 @@
 #include "include/secp256k1_ecdh.h"
 #include "include/secp256k1_recovery.h"
 #include "include/secp256k1_schnorrsig.h"
+#include "include/secp256k1_musig.h"
 #include "fr_acinq_secp256k1_Secp256k1CFunctions.h"
 
 #define SIG_FORMAT_UNKNOWN 0
@@ -753,3 +754,93 @@ JNIEXPORT jint JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1sc
     (*penv)->ReleaseByteArrayElements(penv, jmsg, msg, 0);
     return result;
 }
+
+static void copy_bytes(JNIEnv *penv, jbyteArray source, size_t size, unsigned char *dest)
+{
+  jbyte* ptr = NULL;
+  if (source == NULL) return; // nothing to do
+  ptr = (*penv)->GetByteArrayElements(penv, source, 0);
+  memcpy(dest, ptr, size);
+  (*penv)->ReleaseByteArrayElements(penv, source, ptr, 0);
+}
+
+// session_id32: ByteArray, seckey: ByteArray?, pubkey: ByteArray, msg32: ByteArray?, keyagg_cache: ByteArray?, extra_input32: ByteArray?
+/*
+ * Class:     fr_acinq_secp256k1_Secp256k1CFunctions
+ * Method:    secp256k1_musig_nonce_gen
+ * Signature: (J[B[B[B[B[B[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1musig_1nonce_1gen
+  (JNIEnv *penv, jclass clazz, jlong jctx, jbyteArray jsession_id32, jbyteArray jseckey, jbyteArray jpubkey, jbyteArray jmsg32, jbyteArray jkeyaggcache, jbyteArray jextra_input32)
+{
+    secp256k1_context* ctx = (secp256k1_context *)jctx;
+    int result = 0;
+    size_t size;
+    secp256k1_musig_pubnonce pubnonce;
+    secp256k1_musig_secnonce secnonce;
+    unsigned char session_id32[32];
+    jbyte *pubkey_ptr;
+    secp256k1_pubkey pubkey;
+    unsigned char seckey[32];
+    unsigned char msg32[32];
+    secp256k1_musig_keyagg_cache keyaggcache;
+    unsigned char extra_input32[32];
+    jbyteArray jnonce;
+    jbyte *nonce_ptr = NULL;
+    unsigned char nonce[132 + 66];
+
+    if (jctx == 0) return NULL;
+
+    if (jsession_id32 == 0) return NULL;
+    size = (*penv)->GetArrayLength(penv, jsession_id32);
+    CHECKRESULT(size != 32, "invalid session_id size");
+    copy_bytes(penv, jsession_id32, size, session_id32);
+
+    if (jseckey != NULL) {
+      size = (*penv)->GetArrayLength(penv, jseckey);
+      CHECKRESULT(size != 32, "invalid session_id size");
+      copy_bytes(penv, jseckey, size, seckey);
+    }
+
+    if (jpubkey == NULL) return NULL;
+    size = (*penv)->GetArrayLength(penv, jpubkey);
+    CHECKRESULT((size != 33) && (size != 65), "invalid public key size");
+    pubkey_ptr = (*penv)->GetByteArrayElements(penv, jpubkey, 0);
+    result = secp256k1_ec_pubkey_parse(ctx, &pubkey, (unsigned char*)pubkey_ptr, size);
+    (*penv)->ReleaseByteArrayElements(penv, jpubkey, pubkey_ptr, 0);
+    CHECKRESULT(!result, "secp256k1_ec_pubkey_parse failed");
+
+    if (jmsg32 != NULL) {
+      size = (*penv)->GetArrayLength(penv, jmsg32);
+      CHECKRESULT(size != 32, "invalid message size");
+      copy_bytes(penv, jmsg32, size, msg32);
+    }
+
+    if (jkeyaggcache != NULL) {
+      size = (*penv)->GetArrayLength(penv, jkeyaggcache);
+      CHECKRESULT(size != sizeof(secp256k1_musig_keyagg_cache), "invalid keyagg cache size");
+      copy_bytes(penv, jkeyaggcache, size, keyaggcache.data);
+    }
+
+    if (jextra_input32 != NULL) {
+      size = (*penv)->GetArrayLength(penv, jextra_input32);
+      CHECKRESULT(size != 32, "invalid extra input size");
+      copy_bytes(penv, jextra_input32, size, extra_input32);
+    }
+
+    result = secp256k1_musig_nonce_gen(ctx, &secnonce, &pubnonce, session_id32, 
+    jseckey == NULL ? NULL : seckey, &pubkey, 
+    jmsg32 == NULL ? NULL : msg32, jkeyaggcache == NULL ? NULL : &keyaggcache, jextra_input32 == NULL ? NULL : extra_input32);
+    CHECKRESULT(!result, "secp256k1_musig_nonce_gen failed");
+
+    memcpy(nonce, secnonce.data, 132);
+    result = secp256k1_musig_pubnonce_serialize(ctx, nonce + 132, &pubnonce);
+    CHECKRESULT(!result, "secp256k1_musig_pubnonce_serialize failed");
+
+    jnonce = (*penv)->NewByteArray(penv, sizeof(nonce));
+    nonce_ptr = (*penv)->GetByteArrayElements(penv, jnonce, 0);
+    memcpy(nonce_ptr, nonce, sizeof(nonce));
+    (*penv)->ReleaseByteArrayElements(penv, jnonce, nonce_ptr, 0);
+    return jnonce;
+}
+

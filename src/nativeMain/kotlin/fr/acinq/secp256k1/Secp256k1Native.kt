@@ -1,6 +1,9 @@
 package fr.acinq.secp256k1
 
+import fr.acinq.secp256k1.Secp256k1Native.allocPublicKey
 import kotlinx.cinterop.*
+import platform.posix.memccpy
+import platform.posix.memcpy
 import platform.posix.size_tVar
 import secp256k1.*
 
@@ -251,12 +254,34 @@ public object Secp256k1Native : Secp256k1 {
             return nSig.readBytes(64)
         }
     }
-    
+
+    override fun musigNonceGen(session_id32: ByteArray, seckey: ByteArray?, pubkey: ByteArray, msg32: ByteArray?, keyagg_cache: ByteArray?, extra_input32: ByteArray?): ByteArray {
+        require(session_id32.size == 32)
+        seckey?.let { require(it.size == 32) }
+        msg32?.let { require(it.size == 32) }
+        keyagg_cache?.let { require(it.size == 197) }
+        extra_input32?.let { require(it.size == 32) }
+
+        val nonce = memScoped {
+            val secret_nonce = alloc<secp256k1_musig_secnonce>()
+            val public_nonce = alloc<secp256k1_musig_pubnonce>()
+            val nPubkey = allocPublicKey(pubkey)
+            val nKeyAggCache = keyagg_cache?.let {
+                val n = alloc<secp256k1_musig_keyagg_cache>()
+                memcpy(n.ptr, toNat(it), 197UL)
+                n
+            }
+            secp256k1_musig_nonce_gen(ctx, secret_nonce.ptr, public_nonce.ptr, toNat(session_id32), seckey?.let { toNat(it) }, nPubkey.ptr, msg32?.let { toNat(it) },nKeyAggCache?.ptr, extra_input32?.let { toNat(it) }).requireSuccess("secp256k1_musig_nonce_gen() failed")
+            val nPubnonce = allocArray<UByteVar>(66)
+            secp256k1_musig_pubnonce_serialize(ctx, nPubnonce, public_nonce.ptr).requireSuccess("secp256k1_musig_pubnonce_serialize failed")
+            secret_nonce.ptr.readBytes(132) + nPubnonce.readBytes(66)
+        }
+        return nonce
+    }
+
     public override fun cleanup() {
         secp256k1_context_destroy(ctx)
     }
-
-
 }
 
 internal actual fun getSecpk256k1(): Secp256k1 = Secp256k1Native
