@@ -1,8 +1,6 @@
 package fr.acinq.secp256k1
 
-import fr.acinq.secp256k1.Secp256k1Native.allocPublicKey
 import kotlinx.cinterop.*
-import platform.posix.memccpy
 import platform.posix.memcpy
 import platform.posix.size_tVar
 import secp256k1.*
@@ -43,12 +41,31 @@ public object Secp256k1Native : Secp256k1 {
         return pub
     }
 
+    private fun MemScope.allocPublicNonce(pubnonce: ByteArray): secp256k1_musig_pubnonce {
+        val natPub = toNat(pubnonce)
+        val pub = alloc<secp256k1_musig_pubnonce>()
+        secp256k1_musig_pubnonce_parse(ctx, pub.ptr, natPub).requireSuccess("secp256k1_musig_pubnonce_parse() failed")
+        return pub
+    }
+
     private fun MemScope.serializePubkey(pubkey: secp256k1_pubkey): ByteArray {
         val serialized = allocArray<UByteVar>(65)
         val outputLen = alloc<size_tVar>()
         outputLen.value = 65.convert()
         secp256k1_ec_pubkey_serialize(ctx, serialized, outputLen.ptr, pubkey.ptr, SECP256K1_EC_UNCOMPRESSED.convert()).requireSuccess("secp256k1_ec_pubkey_serialize() failed")
         return serialized.readBytes(outputLen.value.convert())
+    }
+
+    private fun MemScope.serializePubnonce(pubnonce: secp256k1_musig_pubnonce): ByteArray {
+        val serialized = allocArray<UByteVar>(66)
+        secp256k1_musig_pubnonce_serialize(ctx, serialized, pubnonce.ptr).requireSuccess("secp256k1_musig_pubnonce_serialize() failed")
+        return serialized.readBytes(66)
+    }
+
+    private fun MemScope.serializeAggnonce(aggnonce: secp256k1_musig_aggnonce): ByteArray {
+        val serialized = allocArray<UByteVar>(66)
+        secp256k1_musig_aggnonce_serialize(ctx, serialized, aggnonce.ptr).requireSuccess("secp256k1_musig_aggnonce_serialize() failed")
+        return serialized.readBytes(66)
     }
 
     private fun DeferScope.toNat(bytes: ByteArray): CPointer<UByteVar>  {
@@ -277,6 +294,16 @@ public object Secp256k1Native : Secp256k1 {
             secret_nonce.ptr.readBytes(132) + nPubnonce.readBytes(66)
         }
         return nonce
+    }
+
+    override fun musigNonceAgg(pubnonces: Array<ByteArray>): ByteArray {
+        pubnonces.forEach { require(it.size == 66) }
+        memScoped {
+            val nPubnonces = pubnonces.map { allocPublicNonce(it).ptr }
+            val combined = alloc<secp256k1_musig_aggnonce>()
+            secp256k1_musig_nonce_agg(ctx, combined.ptr, nPubnonces.toCValues(), pubnonces.size.convert()).requireSuccess("secp256k1_musig_nonce_agg() failed")
+            return serializeAggnonce(combined)
+        }
     }
 
     public override fun cleanup() {

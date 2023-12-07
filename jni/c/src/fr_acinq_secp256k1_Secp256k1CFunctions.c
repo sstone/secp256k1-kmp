@@ -844,3 +844,56 @@ JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256
     return jnonce;
 }
 
+void free_nonces(secp256k1_musig_pubnonce **nonces, size_t count)
+{
+    size_t i;
+    for(i = 0; i < count; i++) {
+        if (nonces[i] != NULL) free(nonces[i]);
+    }
+    free(nonces);
+}
+
+/*
+ * Class:     fr_acinq_secp256k1_Secp256k1CFunctions
+ * Method:    secp256k1_musig_nonce_agg
+ * Signature: (J[[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1musig_1nonce_1agg
+  (JNIEnv *penv, jclass clazz, jlong jctx, jobjectArray jnonces)
+  {
+    secp256k1_context* ctx = (secp256k1_context *)jctx;
+    jbyte *in66;
+    secp256k1_musig_pubnonce **pubnonces;
+    secp256k1_musig_aggnonce combined;
+    jbyteArray jnonce;
+    size_t size, count;
+    size_t i;
+    int result = 0;
+
+    if (jctx == 0) return NULL;
+    if (jnonces == NULL) return NULL;
+
+    count = (*penv)->GetArrayLength(penv, jnonces);
+    pubnonces = calloc(count, sizeof(secp256k1_musig_pubnonce*));
+
+    for(i = 0; i < count; i++) {
+        pubnonces[i] = calloc(1, sizeof(secp256k1_musig_pubnonce));
+        jnonce = (jbyteArray) (*penv)->GetObjectArrayElement(penv, jnonces, i);
+        size = (*penv)->GetArrayLength(penv, jnonce);
+        CHECKRESULT1(size != 66, "invalid public nonce size", free_nonces(pubnonces, count));
+        in66 = (*penv)->GetByteArrayElements(penv, jnonce, 0);
+        result = secp256k1_musig_pubnonce_parse(ctx, pubnonces[i], (unsigned char*)in66);
+        (*penv)->ReleaseByteArrayElements(penv, jnonce, in66, 0);
+        CHECKRESULT1(!result, "secp256k1_musig_pubnonce_parse failed", free_nonces(pubnonces, count));
+    }
+    result = secp256k1_musig_nonce_agg(ctx, &combined, (const secp256k1_musig_pubnonce * const *)pubnonces, count);
+    free_nonces(pubnonces, count);
+    CHECKRESULT(!result, "secp256k1_musig_nonce_agg failed");
+
+    jnonce = (*penv)->NewByteArray(penv, 66);
+    in66 = (*penv)->GetByteArrayElements(penv, jnonce, 0);
+    result = secp256k1_musig_aggnonce_serialize(ctx, (unsigned char*)in66, &combined);
+    (*penv)->ReleaseByteArrayElements(penv, jnonce, in66, 0);
+    CHECKRESULT(!result, "secp256k1_musig_aggnonce_serialize failed");
+    return jnonce;  
+  }

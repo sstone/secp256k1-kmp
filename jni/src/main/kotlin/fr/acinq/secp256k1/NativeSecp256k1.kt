@@ -96,6 +96,10 @@ public object NativeSecp256k1 : Secp256k1 {
         return Secp256k1CFunctions.secp256k1_musig_nonce_gen(Secp256k1Context.getContext(), session_id32, seckey, pubkey, msg32, keyagg_cache, extra_input32)
     }
 
+    override fun musigNonceAgg(pubnonces: Array<ByteArray>): ByteArray {
+        return Secp256k1CFunctions.secp256k1_musig_nonce_agg(Secp256k1Context.getContext(), pubnonces)
+    }
+
     override fun cleanup() {
         return Secp256k1CFunctions.secp256k1_context_destroy(Secp256k1Context.getContext())
     }
