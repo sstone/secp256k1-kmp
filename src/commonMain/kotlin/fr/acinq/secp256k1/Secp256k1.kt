@@ -157,6 +157,8 @@ public interface Secp256k1 {
 
     public fun musigNonceAgg(pubnonces: Array<ByteArray>): ByteArray
 
+    public fun musigPubkeyAdd(pubkeys: Array<ByteArray>, keyagg_cache: ByteArray?): ByteArray
+
     /**
      * Delete the secp256k1 context from dynamic memory.
      */

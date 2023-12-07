@@ -100,6 +100,10 @@ public object NativeSecp256k1 : Secp256k1 {
         return Secp256k1CFunctions.secp256k1_musig_nonce_agg(Secp256k1Context.getContext(), pubnonces)
     }
 
+    override fun musigPubkeyAdd(pubkeys: Array<ByteArray>, keyagg_cache: ByteArray?): ByteArray {
+        return Secp256k1CFunctions.secp256k1_musig_pubkey_agg(Secp256k1Context.getContext(), pubkeys, keyagg_cache)
+    }
+
     override fun cleanup() {
         return Secp256k1CFunctions.secp256k1_context_destroy(Secp256k1Context.getContext())
     }

@@ -56,6 +56,12 @@ public object Secp256k1Native : Secp256k1 {
         return serialized.readBytes(outputLen.value.convert())
     }
 
+    private fun MemScope.serializeXonlyPubkey(pubkey: secp256k1_xonly_pubkey): ByteArray {
+        val serialized = allocArray<UByteVar>(32)
+        secp256k1_xonly_pubkey_serialize(ctx, serialized, pubkey.ptr).requireSuccess("secp256k1_xonly_pubkey_serialize() failed")
+        return serialized.readBytes(32)
+    }
+
     private fun MemScope.serializePubnonce(pubnonce: secp256k1_musig_pubnonce): ByteArray {
         val serialized = allocArray<UByteVar>(66)
         secp256k1_musig_pubnonce_serialize(ctx, serialized, pubnonce.ptr).requireSuccess("secp256k1_musig_pubnonce_serialize() failed")
@@ -303,6 +309,24 @@ public object Secp256k1Native : Secp256k1 {
             val combined = alloc<secp256k1_musig_aggnonce>()
             secp256k1_musig_nonce_agg(ctx, combined.ptr, nPubnonces.toCValues(), pubnonces.size.convert()).requireSuccess("secp256k1_musig_nonce_agg() failed")
             return serializeAggnonce(combined)
+        }
+    }
+
+    override fun musigPubkeyAdd(pubkeys: Array<ByteArray>, keyagg_cache: ByteArray?): ByteArray {
+        pubkeys.forEach { require(it.size == 33 || it.size == 65) }
+        keyagg_cache?.let { require(it.size == 197) }
+        memScoped {
+            val nPubkeys = pubkeys.map { allocPublicKey(it).ptr }
+            val combined = alloc<secp256k1_xonly_pubkey>()
+            val nKeyAggCache = keyagg_cache?.let {
+                val n = alloc<secp256k1_musig_keyagg_cache>()
+                memcpy(n.ptr, toNat(it), 197UL)
+                n
+            }
+            secp256k1_musig_pubkey_agg(ctx, null, combined.ptr, nKeyAggCache?.ptr, nPubkeys.toCValues(), pubkeys.size.convert()).requireSuccess("secp256k1_musig_nonce_agg() failed")
+            val agg =  serializeXonlyPubkey(combined)
+            keyagg_cache?.let { blob -> nKeyAggCache?.let { memcpy(toNat(blob), it.ptr, 197UL) } }
+            return agg
         }
     }
 
