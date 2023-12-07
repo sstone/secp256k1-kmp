@@ -955,3 +955,89 @@ JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256
     }
     return jpubkey;
 }
+
+/*
+ * Class:     fr_acinq_secp256k1_Secp256k1CFunctions
+ * Method:    secp256k1_musig_pubkey_ec_tweak_add
+ * Signature: (J[B[B[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1musig_1pubkey_1ec_1tweak_1add
+  (JNIEnv *penv, jclass clazz, jlong jctx, jbyteArray jkeyaggcache, jbyteArray jtweak32)
+  {
+    secp256k1_context* ctx = (secp256k1_context *)jctx;   
+    jbyte *tweak32, *pub;
+    secp256k1_pubkey pubkey;
+    secp256k1_musig_keyagg_cache keyaggcache;
+    jbyteArray jpubkey;
+    size_t size;
+    int result = 0;
+
+    if (jctx == 0) return NULL;
+    if (jkeyaggcache == NULL) return NULL;
+    size = (*penv)->GetArrayLength(penv, jkeyaggcache);
+    CHECKRESULT(size != sizeof(secp256k1_musig_keyagg_cache), "invalid keyagg cache size");
+    copy_bytes(penv, jkeyaggcache, size, keyaggcache.data);
+    if (jtweak32 == NULL) return NULL;
+    CHECKRESULT((*penv)->GetArrayLength(penv, jtweak32) != 32, "tweak must be 32 bytes");
+    tweak32 = (*penv)->GetByteArrayElements(penv, jtweak32, 0);
+
+    result = secp256k1_musig_pubkey_ec_tweak_add(ctx, &pubkey, &keyaggcache, tweak32);
+    (*penv)->ReleaseByteArrayElements(penv, jtweak32, tweak32, 0);
+    CHECKRESULT(!result, "secp256k1_musig_pubkey_ec_tweak_add failed");
+
+    jpubkey = (*penv)->NewByteArray(penv, 65);
+    pub = (*penv)->GetByteArrayElements(penv, jpubkey, 0);
+    size = 65;
+    result = secp256k1_ec_pubkey_serialize(ctx, pub, &size, &pubkey, SECP256K1_EC_UNCOMPRESSED);
+    (*penv)->ReleaseByteArrayElements(penv, jpubkey, pub, 0);
+    CHECKRESULT(!result, "secp256k1_ec_pubkey_serialize failed");
+
+    pub = (*penv)->GetByteArrayElements(penv, jkeyaggcache, 0);
+    memcpy(pub, keyaggcache.data, sizeof(secp256k1_musig_keyagg_cache));
+    (*penv)->ReleaseByteArrayElements(penv, jkeyaggcache, pub, 0);
+
+    return jpubkey;
+}
+
+/*
+ * Class:     fr_acinq_secp256k1_Secp256k1CFunctions
+ * Method:    secp256k1_musig_pubkey_xonly_tweak_add
+ * Signature: (J[B[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_fr_acinq_secp256k1_Secp256k1CFunctions_secp256k1_1musig_1pubkey_1xonly_1tweak_1add
+  (JNIEnv *penv, jclass clazz, jlong jctx, jbyteArray jkeyaggcache, jbyteArray jtweak32)
+  {
+    secp256k1_context* ctx = (secp256k1_context *)jctx;   
+    jbyte *tweak32, *pub;
+    secp256k1_pubkey pubkey;
+    secp256k1_musig_keyagg_cache keyaggcache;
+    jbyteArray jpubkey;
+    size_t size;
+    int result = 0;
+
+    if (jctx == 0) return NULL;
+    if (jkeyaggcache == NULL) return NULL;
+    size = (*penv)->GetArrayLength(penv, jkeyaggcache);
+    CHECKRESULT(size != sizeof(secp256k1_musig_keyagg_cache), "invalid keyagg cache size");
+    copy_bytes(penv, jkeyaggcache, size, keyaggcache.data);
+    if (jtweak32 == NULL) return NULL;
+    CHECKRESULT((*penv)->GetArrayLength(penv, jtweak32) != 32, "tweak must be 32 bytes");
+    tweak32 = (*penv)->GetByteArrayElements(penv, jtweak32, 0);
+
+    result = secp256k1_musig_pubkey_xonly_tweak_add(ctx, &pubkey, &keyaggcache, tweak32);
+    (*penv)->ReleaseByteArrayElements(penv, jtweak32, tweak32, 0);
+    CHECKRESULT(!result, "secp256k1_musig_pubkey_xonly_tweak_add failed");
+
+    jpubkey = (*penv)->NewByteArray(penv, 65);
+    pub = (*penv)->GetByteArrayElements(penv, jpubkey, 0);
+    size = 65;
+    result = secp256k1_ec_pubkey_serialize(ctx, pub, &size, &pubkey, SECP256K1_EC_UNCOMPRESSED);
+    (*penv)->ReleaseByteArrayElements(penv, jpubkey, pub, 0);
+    CHECKRESULT(!result, "secp256k1_ec_pubkey_serialize failed");
+
+    pub = (*penv)->GetByteArrayElements(penv, jkeyaggcache, 0);
+    memcpy(pub, keyaggcache.data, sizeof(secp256k1_musig_keyagg_cache));
+    (*penv)->ReleaseByteArrayElements(penv, jkeyaggcache, pub, 0);
+
+    return jpubkey;
+}

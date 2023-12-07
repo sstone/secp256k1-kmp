@@ -74,4 +74,8 @@ public class Secp256k1CFunctions {
     public static native byte[] secp256k1_musig_nonce_agg(long ctx, byte[][] nonces);
 
     public static native byte[] secp256k1_musig_pubkey_agg(long ctx, byte[][] pubkeys, byte[] keyagg_cache);
+
+    public static native byte[] secp256k1_musig_pubkey_ec_tweak_add(long ctx, byte[] keyagg_cache, byte[] tweak32);
+
+    public static native byte[] secp256k1_musig_pubkey_xonly_tweak_add(long ctx, byte[] keyagg_cache, byte[] tweak32);
 }

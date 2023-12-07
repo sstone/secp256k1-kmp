@@ -1,5 +1,6 @@
 package fr.acinq.secp256k1
 
+import fr.acinq.secp256k1.Secp256k1Native.toNat
 import kotlinx.cinterop.*
 import platform.posix.memcpy
 import platform.posix.size_tVar
@@ -327,6 +328,32 @@ public object Secp256k1Native : Secp256k1 {
             val agg =  serializeXonlyPubkey(combined)
             keyagg_cache?.let { blob -> nKeyAggCache?.let { memcpy(toNat(blob), it.ptr, 197UL) } }
             return agg
+        }
+    }
+
+    override fun musigPubkeyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray {
+        require(keyagg_cache.size == 197)
+        require(tweak32.size == 32)
+        memScoped {
+            val nKeyAggCache = alloc<secp256k1_musig_keyagg_cache>()
+            memcpy(nKeyAggCache.ptr, toNat(keyagg_cache), 197UL)
+            val nPubkey = alloc<secp256k1_pubkey>()
+            secp256k1_musig_pubkey_ec_tweak_add(ctx, nPubkey.ptr, nKeyAggCache.ptr, toNat(tweak32)).requireSuccess("secp256k1_musig_pubkey_ec_tweak_add() failed")
+            memcpy(toNat(keyagg_cache), nKeyAggCache.ptr, 197UL)
+            return serializePubkey(nPubkey)
+        }
+    }
+
+    override fun musigPubkeyXonlyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray {
+        require(keyagg_cache.size == 197)
+        require(tweak32.size == 32)
+        memScoped {
+            val nKeyAggCache = alloc<secp256k1_musig_keyagg_cache>()
+            memcpy(nKeyAggCache.ptr, toNat(keyagg_cache), 197UL)
+            val nPubkey = alloc<secp256k1_pubkey>()
+            secp256k1_musig_pubkey_xonly_tweak_add(ctx, nPubkey.ptr, nKeyAggCache.ptr, toNat(tweak32)).requireSuccess("secp256k1_musig_pubkey_xonly_tweak_add() failed")
+            memcpy(toNat(keyagg_cache), nKeyAggCache.ptr, 197UL)
+            return serializePubkey(nPubkey)
         }
     }
 

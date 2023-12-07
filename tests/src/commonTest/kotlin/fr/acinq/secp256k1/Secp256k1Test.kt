@@ -421,6 +421,22 @@ class Secp256k1Test {
     }
 
     @Test
+    fun testMusig2TweakPubkeys() {
+        val pubkeys = listOf(
+            "031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078f",
+            "024d4b6cd1361032ca9bd2aeb9d900aa4d45d9ead80ac9423374c451a7254d0766",
+            "02531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337"
+        ).map { Hex.decode(it) }.toTypedArray()
+        val cache = ByteArray(197)
+        val agg1 = Secp256k1.musigPubkeyAdd(pubkeys, cache)
+        assertEquals("b6d830642403fc82511aca5ff98a5e76fcef0f89bffc1aadbe78ee74cd5a5716", Hex.encode(agg1))
+        val agg2 = Secp256k1.musigPubkeyTweakAdd(cache, Hex.decode("7468697320636f756c64206265206120424950333220747765616b2e2e2e2e00"))
+        assertEquals("04791e4f22a21f19bd9798eceab92ad2ccc18f2d6660e91ae4c0709aaebf1aa9023701f468b0eddf8973495a5327f2169d9c6a50eb6a0f87c0fbee90a4067eb230", Hex.encode(agg2))
+        val agg3 = Secp256k1.musigPubkeyXonlyTweakAdd(cache, Hex.decode("7468697320636f756c64206265206120746170726f6f7420747765616b2e2e00"))
+        assertEquals("04537a081a8d32ff700ca86aaa77a423e9b8d1480938076b645c68ee39d263c93948026928799b2d942cb5851db397015b26b1759de1b9ab2c691ced64a2eef836", Hex.encode(agg3))
+    }
+
+    @Test
     fun fuzzEcdsaSignVerify() {
         val random = Random.Default
 

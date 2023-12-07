@@ -159,6 +159,10 @@ public interface Secp256k1 {
 
     public fun musigPubkeyAdd(pubkeys: Array<ByteArray>, keyagg_cache: ByteArray?): ByteArray
 
+    public fun musigPubkeyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray
+
+    public fun musigPubkeyXonlyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray
+
     /**
      * Delete the secp256k1 context from dynamic memory.
      */

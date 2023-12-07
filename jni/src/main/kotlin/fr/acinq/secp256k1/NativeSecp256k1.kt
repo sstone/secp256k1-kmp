@@ -104,6 +104,14 @@ public object NativeSecp256k1 : Secp256k1 {
         return Secp256k1CFunctions.secp256k1_musig_pubkey_agg(Secp256k1Context.getContext(), pubkeys, keyagg_cache)
     }
 
+    override fun musigPubkeyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray {
+        return Secp256k1CFunctions.secp256k1_musig_pubkey_ec_tweak_add(Secp256k1Context.getContext(), keyagg_cache, tweak32)
+    }
+
+    override fun musigPubkeyXonlyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray {
+        return Secp256k1CFunctions.secp256k1_musig_pubkey_xonly_tweak_add(Secp256k1Context.getContext(), keyagg_cache, tweak32)
+    }
+
     override fun cleanup() {
         return Secp256k1CFunctions.secp256k1_context_destroy(Secp256k1Context.getContext())
     }
