@@ -55,7 +55,7 @@ public interface Secp256k1 {
      */
     public fun signSchnorr(data: ByteArray, sec: ByteArray, auxrand32: ByteArray?): ByteArray
 
-   /**
+    /**
      * Convert an ECDSA signature to a normalized lower-S form (bitcoin standardness rule).
      * Returns the normalized signature and a boolean set to true if the input signature was not normalized.
      *
@@ -149,6 +149,7 @@ public interface Secp256k1 {
                 compressed[0] = if (pubkey.last() % 2 == 0) 2.toByte() else 3.toByte()
                 compressed
             }
+
             else -> throw Secp256k1Exception("invalid public key")
         }
     }
@@ -163,6 +164,15 @@ public interface Secp256k1 {
 
     public fun musigPubkeyXonlyTweakAdd(keyagg_cache: ByteArray, tweak32: ByteArray): ByteArray
 
+    public fun musigNonceProcess(aggnonce: ByteArray, msg32: ByteArray, keyagg_cache: ByteArray, adaptor: ByteArray?): ByteArray
+
+    public fun musigPartialSign(secnonce: ByteArray, privkey: ByteArray, keyagg_cache: ByteArray, session: ByteArray): ByteArray
+
+    public fun musigPartialSigVerify(psig: ByteArray, pubnonce: ByteArray, pubkey: ByteArray, keyagg_cache: ByteArray, session: ByteArray): Int
+
+    public fun musigPartialSigAgg(session: ByteArray, psigs: Array<ByteArray>): ByteArray
+
+
     /**
      * Delete the secp256k1 context from dynamic memory.
      */
@@ -171,6 +181,13 @@ public interface Secp256k1 {
     public companion object : Secp256k1 by getSecpk256k1() {
         @JvmStatic
         public fun get(): Secp256k1 = this
+
+        // @formatter:off
+        public const val MUSIG2_SECRET_NONCE_SIZE: Int = 132
+        public const val MUSIG2_PUBLIC_NONCE_SIZE: Int = 66
+        public const val MUSIG2_PUBLIC_KEYAGG_CACHE_SIZE: Int = 197
+        public const val MUSIG2_PUBLIC_SESSION_SIZE: Int = 132
+        // @formatter:on
     }
 }
 

@@ -437,6 +437,37 @@ class Secp256k1Test {
     }
 
     @Test
+    fun testMusig2SigningSession() {
+        val privkeys = listOf(
+            "0101010101010101010101010101010101010101010101010101010101010101",
+            "0202020202020202020202020202020202020202020202020202020202020202",
+        ).map { Hex.decode(it) }.toTypedArray()
+        val pubkeys = privkeys.map { Secp256k1.pubkeyCreate(it) }
+
+        val sessionId = Hex.decode("0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F")
+        val nonces = pubkeys.map { Secp256k1.musigNonceGen(sessionId, null, it, null, null, null) }
+        val secnonces = nonces.map { it.copyOfRange(0, 132) }
+        val pubnonces = nonces.map { it.copyOfRange(132, 132 + 66) }
+        val aggnonce = Secp256k1.musigNonceAgg(pubnonces.toTypedArray())
+
+        val caches = (0 until 2).map { ByteArray(197) }
+        val aggpubkey = Secp256k1.musigPubkeyAdd(pubkeys.toTypedArray(), caches[0])
+        Secp256k1.musigPubkeyAdd(pubkeys.toTypedArray(), caches[1])
+
+        val msg32 = Hex.decode("0303030303030303030303030303030303030303030303030303030303030303")
+        val sessions = (0 until 2).map {  Secp256k1.musigNonceProcess(aggnonce, msg32, caches[it], null) }
+        val psigs = (0 until 2).map {
+            val psig = Secp256k1.musigPartialSign(secnonces[it], privkeys[it], caches[it], sessions[it])
+            val check = Secp256k1.musigPartialSigVerify(psig, pubnonces[it], pubkeys[it], caches[it], sessions[it])
+            assertEquals(1, check)
+            psig
+        }
+        val sig = Secp256k1.musigPartialSigAgg(sessions[0], psigs.toTypedArray())
+        val check = Secp256k1.verifySchnorr(sig, msg32, aggpubkey)
+        assertTrue(check)
+    }
+
+    @Test
     fun fuzzEcdsaSignVerify() {
         val random = Random.Default
 
