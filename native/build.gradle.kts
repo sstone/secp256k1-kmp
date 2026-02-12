@@ -38,6 +38,8 @@ tasks.register<Exec>("buildSecp256k1Host") {
 tasks.register<Exec>("buildSecp256k1LinuxArm64") {
     group = "build"
 
+    onlyIf { currentOs.isLinux }
+
     val target = "linuxArm64"
 
     inputs.files(projectDir.resolve("build.sh"))
@@ -79,13 +81,6 @@ if (includeAndroid) {
 
         workingDir = projectDir
 
-        val toolchain = when {
-            currentOs.isLinux -> "linux-x86_64"
-            currentOs.isMacOsX -> "darwin-x86_64"
-            currentOs.isWindows -> "windows-x86_64"
-            else -> error("No Android toolchain defined for this OS: $currentOs")
-        }
-        environment("TOOLCHAIN", toolchain)
         environment("ARCH", arch)
         environment("ANDROID_NDK", (project(":jni:android").extensions["android"] as LibraryExtension).ndkDirectory)
         commandLine(bash, "build-android.sh")
